@@ -18,25 +18,24 @@ const App: React.FC = () => {
         }
     };
 
-    useEffect(() => {
-        const init = async () => {
-            try {
-                // Add a half-second delay to ensure the wallet is ready
-                await new Promise(resolve => setTimeout(resolve, 500));
+ useEffect(() => {
+    const init = async () => {
+        try {
+            // Remove this delay - let findMiniPayProvider handle timing
+            // await new Promise(resolve => setTimeout(resolve, 500));
 
-                const walletAddress = await getWalletAddress();
-                setAddress(walletAddress);
-                
-                const usdcBalance = await getUSDCBalance(walletAddress);
-                setBalance(usdcBalance);
+            const walletAddress = await getWalletAddress();
+            setAddress(walletAddress);
+            
+            const usdcBalance = await getUSDCBalance(walletAddress);
+            setBalance(usdcBalance);
 
-            } catch (e: any) {
-                // Display the new, highly specific error message
-                setError(e.message);
-            }
-        };
-        init();
-    }, []);
+        } catch (e: any) {
+            setError(e.message);
+        }
+    };
+    init();
+}, []);
 
     const renderPage = () => {
         if (error) {
