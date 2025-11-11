@@ -30,8 +30,18 @@ export const getWalletAddress = async (): Promise<string | null> => {
         const provider = getMiniPayProvider();
         if (!provider) return null;
 
-        const signer = await provider.getSigner();
-        return await signer.getAddress();
+        // --- THE CRITICAL FIX IS HERE ---
+        // We must first request the accounts from the wallet.
+        // This prompts MiniPay to connect and provide the address.
+        const accounts = await provider.send('eth_requestAccounts', []);
+        
+        if (accounts && accounts.length > 0) {
+            return accounts[0]; // Return the first account
+        }
+
+        // If no accounts are returned, we can't proceed.
+        return null;
+
     } catch (error) {
         console.error("Error getting wallet address:", error);
         return null;
@@ -44,7 +54,7 @@ export const getWalletAddress = async (): Promise<string | null> => {
 export const getUSDCBalance = async (address: string): Promise<string | null> => {
     try {
         const provider = new JsonRpcProvider(CELO_RPC_URL);
-        const kit = newKitFromWeb3(provider as any); // ContractKit for read-only is fine
+        const kit = newKitFromWeb3(provider as any);
         const stableToken = await kit.contracts.getStableToken(StableToken.cUSD);
         const balanceInWei = await stableToken.balanceOf(address);
         const balanceInCUSD = formatUnits(balanceInWei.toString(), 18);
@@ -64,17 +74,9 @@ export const sendUSDC = async (destinationAddress: string, amount: string): Prom
         if (!provider) throw new Error("MiniPay provider not found");
 
         const signer = await provider.getSigner();
-
-        // Create a contract instance
         const cusdContract = new Contract(CUSD_CONTRACT_ADDRESS, ERC20_ABI, signer);
-
-        // Convert the amount to the smallest unit (wei)
         const amountInWei = parseUnits(amount, 18);
-
-        // Send the transaction
         const tx = await cusdContract.transfer(destinationAddress, amountInWei);
-
-        // Wait for the transaction to be mined
         const receipt = await tx.wait();
 
         return receipt.hash;
